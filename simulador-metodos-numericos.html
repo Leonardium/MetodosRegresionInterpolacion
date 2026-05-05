@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador · Métodos Numéricos · Sesión 10</title>
+
+<!-- MathJax para renderizar fórmulas LaTeX -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+
+<!-- Chart.js para gráficas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #f4f1ea;
+  --bg-alt: #ebe6db;
+  --paper: #fdfaf2;
+  --ink: #1a1814;
+  --ink-soft: #4a4540;
+  --accent: #c1432d;        /* rojo ladrillo */
+  --accent-2: #2d5a4f;      /* verde oscuro */
+  --accent-3: #d4881a;      /* mostaza */
+  --accent-4: #3a4a8c;      /* azul tinta */
+  --grid: #d8d2c4;
+  --grid-dark: #a8a08e;
+  --shadow: rgba(26, 24, 20, 0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(193, 67, 45, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(45, 90, 79, 0.04) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(168, 160, 142, 0.06) 24px, rgba(168, 160, 142, 0.06) 25px);
+  min-height: 100vh;
+}
+
+/* HEADER */
+.hero {
+  padding: 48px 32px 32px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 40%;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(193, 67, 45, 0.04) 10px, rgba(193, 67, 45, 0.04) 11px);
+  pointer-events: none;
+}
+
+.hero-inner { max-width: 1400px; margin: 0 auto; position: relative; }
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ink);
+  max-width: 200px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.subtitle {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+  max-width: 700px;
+  font-weight: 400;
+}
+
+.meta-strip {
+  display: flex;
+  gap: 32px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.meta-item span { color: var(--ink); font-weight: 700; }
+
+/* TABS */
+.tabs-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--grid-dark);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 18px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tab-num {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  background: var(--bg-alt);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tab:hover { color: var(--ink); background: rgba(193, 67, 45, 0.04); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab.active .tab-num {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+/* MAIN */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.panel { display: none; animation: fadeIn 0.4s ease; }
+.panel.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--grid-dark);
+}
+
+.section-header h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.section-header p {
+  color: var(--ink-soft);
+  max-width: 800px;
+}
+
+/* GRID DE TRABAJO */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--grid-dark);
+  border-radius: 4px;
+  padding: 24px;
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px;
+  height: 4px;
+  background: var(--accent);
+}
+
+.card.green::before { background: var(--accent-2); }
+.card.gold::before { background: var(--accent-3); }
+.card.blue::before { background: var(--accent-4); }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.card-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.card-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  background: var(--bg-alt);
+  border-radius: 3px;
+  color: var(--ink-soft);
+}
+
+/* TABLAS EDITABLES */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--bg-alt);
+  border-bottom: 2px solid var(--ink);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.data-table tr:hover { background: rgba(193, 67, 45, 0.03); }
+
+.data-table input {
+  width: 100%;
+  padding: 4px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.data-table input:hover { border-color: var(--grid-dark); background: var(--bg); }
+.data-table input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--paper);
+  box-shadow: 0 0 0 2px rgba(193, 67, 45, 0.15);
+}
+
+.data-table .computed {
+  color: var(--accent-2);
+  font-weight: 500;
+  background: rgba(45, 90, 79, 0.05);
+}
+
+.data-table tfoot td {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  border: none;
+}
+
+.row-action {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 20px;
+  text-align: center;
+  border: 1px solid var(--grid-dark);
+  background: var(--paper);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+}
+.row-action:hover { border-color: var(--accent); color: var(--accent); }
+
+/* BOTONES */
+.btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn:hover { background: var(--ink); color: var(--paper); }
+
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+.btn.accent { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.btn.accent:hover { background: var(--ink); border-color: var(--ink); }
+
+.btn.ghost { border-style: dashed; }
+
+/* CONTROLES */
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.control-group label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  min-width: 140px;
+}
+
+.control-group input[type="number"],
+.control-group input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  border: 1px solid var(--grid-dark);
+  background: var(--paper);
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+.control-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(193, 67, 45, 0.15);
+}
+
+/* RESULTADOS */
+.result-box {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 20px 24px;
+  border-radius: 4px;
+  margin-top: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.result-box .label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+  margin-bottom: 6px;
+}
+
+.result-box .value {
+  font-family: 'Fraunces', serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.result-box .formula {
+  font-size: 12px;
+  color: rgba(253, 250, 242, 0.7);
+  margin-top: 8px;
+}
+
+/* PASOS */
+.steps {
+  margin-top: 24px;
+}
+
+.step {
+  background: var(--paper);
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  border-radius: 0 4px 4px 0;
+}
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-num::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.step-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.step-content {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.step-content .math-line {
+  background: var(--bg-alt);
+  padding: 8px 12px;
+  border-radius: 3px;
+  margin: 8px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+/* GRÁFICA */
+.chart-container {
+  position: relative;
+  height: 380px;
+  background: var(--paper);
+  padding: 16px;
+  border: 1px solid var(--grid-dark);
+  border-radius: 4px;
+}
+
+/* FÓRMULA DESTACADA */
+.formula-card {
+  background: linear-gradient(135deg, var(--bg-alt) 0%, var(--paper) 100%);
+  border: 1px solid var(--grid-dark);
+  border-left: 4px solid var(--accent-4);
+  padding: 18px 22px;
+  border-radius: 4px;
+  margin: 12px 0;
+}
+
+.formula-card .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-4);
+  margin-bottom: 8px;
+}
+
+/* INTRO PANEL */
+.intro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 32px;
+}
+
+@media (max-width: 900px) { .intro-grid { grid-template-columns: 1fr; } }
+
+.method-card {
+  background: var(--paper);
+  border: 1px solid var(--grid-dark);
+  padding: 28px;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.method-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.method-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 6px;
+}
+
+.method-card.r::before { background: var(--accent); }
+.method-card.l::before { background: var(--accent-2); }
+.method-card.f::before { background: var(--accent-3); }
+
+.method-card .number {
+  font-family: 'Fraunces', serif;
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--bg-alt);
+  position: absolute;
+  right: 20px;
+  top: 16px;
+}
+
+.method-card h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.method-card .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+.method-card p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.comparison-table {
+  margin-top: 40px;
+  background: var(--paper);
+  border: 1px solid var(--grid-dark);
+  border-radius: 4px;
+  padding: 24px;
+}
+
+.comparison-table h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.compare-table th, .compare-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--grid);
+}
+
+.compare-table th {
+  background: var(--bg-alt);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compare-table .yes { color: var(--accent-2); font-weight: 600; }
+.compare-table .no { color: var(--accent); font-weight: 600; }
+
+/* PRESET BUTTONS */
+.preset-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-alt);
+  border-radius: 3px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.preset-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+  margin-right: 8px;
+}
+
+.preset {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  background: var(--paper);
+  border: 1px solid var(--grid-dark);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* DIFFERENCE TABLE STYLING */
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.diff-table th, .diff-table td {
+  padding: 8px 12px;
+  text-align: center;
+  border: 1px solid var(--grid);
+}
+
+.diff-table th {
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diff-table .delta-1 { background: rgba(193, 67, 45, 0.05); }
+.diff-table .delta-2 { background: rgba(212, 136, 26, 0.05); }
+.diff-table .delta-3 { background: rgba(45, 90, 79, 0.05); }
+.diff-table .delta-4 { background: rgba(58, 74, 140, 0.05); }
+
+/* FOOTER */
+footer {
+  margin-top: 48px;
+  padding: 32px;
+  background: var(--ink);
+  color: var(--paper);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+footer .accent { color: var(--accent-3); }
+
+/* ALERT */
+.alert {
+  background: rgba(212, 136, 26, 0.1);
+  border-left: 3px solid var(--accent-3);
+  padding: 12px 16px;
+  border-radius: 0 3px 3px 0;
+  margin: 12px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.alert.success {
+  background: rgba(45, 90, 79, 0.08);
+  border-color: var(--accent-2);
+}
+
+.alert.error {
+  background: rgba(193, 67, 45, 0.08);
+  border-color: var(--accent);
+}
+
+.alert strong { color: var(--ink); }
+
+mjx-container { overflow-x: auto; overflow-y: hidden; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Simulador · Sesión 10 · UVM Mérida</div>
+    <h1>Métodos de regresión<br>e <em>interpolación numérica</em></h1>
+    <p class="subtitle">Tres herramientas fundamentales para ajustar y reconstruir funciones a partir de datos experimentales. Edita las tablas, observa los cálculos paso a paso y experimenta con tus propios conjuntos de datos.</p>
+    <div class="meta-strip">
+      <div class="meta-item">DOCENTE · <span>Guillermo Leonardo Peña Quintal</span></div>
+      <div class="meta-item">MATERIA · <span>Métodos Numéricos</span></div>
+      <div class="meta-item">DURACIÓN · <span>120 min</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs-container">
+  <div class="tabs">
+    <button class="tab active" data-panel="intro"><span class="tab-num">0</span>Introducción</button>
+    <button class="tab" data-panel="regresion"><span class="tab-num">1</span>Regresión Lineal</button>
+    <button class="tab" data-panel="lagrange"><span class="tab-num">2</span>Interp. Lagrange</button>
+    <button class="tab" data-panel="finitas"><span class="tab-num">3</span>Diferencias Finitas</button>
+    <button class="tab" data-panel="comparar"><span class="tab-num">4</span>Comparativa</button>
+  </div>
+</div>
+
+<main>
+
+<!-- ============== INTRO ============== -->
+<section class="panel active" id="panel-intro">
+  <div class="section-header">
+    <h2>¿Qué problema resuelve cada método?</h2>
+    <p>Tienes un conjunto de datos discretos $(x_i, y_i)$ y quieres construir una función continua a partir de ellos. La pregunta es: ¿quieres una función que <strong>pase exactamente por todos los puntos</strong> (interpolación), o una que <strong>capture la tendencia general</strong> aunque no toque los puntos (regresión)?</p>
+  </div>
+
+  <div class="intro-grid">
+    <div class="method-card r" onclick="goTo('regresion')">
+      <div class="number">01</div>
+      <div class="tag">Datos con ruido</div>
+      <h3>Regresión Lineal</h3>
+      <p>Encuentra la <strong>mejor recta</strong> $y = a_0 + a_1 x$ que minimiza la suma de errores al cuadrado. Ideal cuando los datos vienen de mediciones experimentales con incertidumbre.</p>
+    </div>
+
+    <div class="method-card l" onclick="goTo('lagrange')">
+      <div class="number">02</div>
+      <div class="tag">Datos exactos · espaciado libre</div>
+      <h3>Lagrange</h3>
+      <p>Construye un polinomio que <strong>pasa exactamente</strong> por todos los puntos, sin importar si están equiespaciados. Útil para tablas y datos confiables.</p>
+    </div>
+
+    <div class="method-card f" onclick="goTo('finitas')">
+      <div class="number">03</div>
+      <div class="tag">Datos exactos · espaciado constante</div>
+      <h3>Diferencias Finitas</h3>
+      <p>Equivalente a Lagrange pero más eficiente cuando $h$ es constante. Construye una tabla de diferencias y aplica la fórmula de Newton hacia adelante.</p>
+    </div>
+  </div>
+
+  <div class="comparison-table">
+    <h3>¿Cuál uso?</h3>
+    <table class="compare-table">
+      <thead>
+        <tr><th>Criterio</th><th>Regresión</th><th>Lagrange</th><th>Diferencias Finitas</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>¿Pasa por todos los puntos?</td>
+          <td class="no">No</td><td class="yes">Sí</td><td class="yes">Sí</td>
+        </tr>
+        <tr>
+          <td>¿Tolera ruido en datos?</td>
+          <td class="yes">Sí</td><td class="no">No</td><td class="no">No</td>
+        </tr>
+        <tr>
+          <td>¿Requiere espaciado constante?</td>
+          <td class="no">No</td><td class="no">No</td><td class="yes">Sí</td>
+        </tr>
+        <tr>
+          <td>¿Fácil agregar nuevos puntos?</td>
+          <td class="yes">Sí</td><td class="no">No</td><td class="yes">Sí</td>
+        </tr>
+        <tr>
+          <td>Tipo de salida</td>
+          <td>Recta (grado 1)</td><td>Polinomio grado n−1</td><td>Polinomio grado n−1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============== REGRESIÓN ============== -->
+<section class="panel" id="panel-regresion">
+  <div class="section-header">
+    <h2>Regresión lineal por mínimos cuadrados</h2>
+    <p>Busca la recta $y = a_0 + a_1 x$ que minimiza $S_r = \sum (y_i - a_0 - a_1 x_i)^2$. La solución analítica viene de igualar a cero las derivadas parciales respecto a $a_0$ y $a_1$.</p>
+  </div>
+
+  <div class="formula-card">
+    <div class="label">Fórmulas de mínimos cuadrados</div>
+    $$a_1 = \frac{n\sum x_i y_i - \sum x_i \sum y_i}{n\sum x_i^2 - (\sum x_i)^2}, \qquad a_0 = \bar{y} - a_1 \bar{x}$$
+    $$r^2 = \frac{S_t - S_r}{S_t}, \quad S_t = \sum(y_i - \bar{y})^2, \quad S_r = \sum(y_i - \hat{y}_i)^2$$
+  </div>
+
+  <div class="preset-bar">
+    <span class="preset-label">Datasets de ejemplo:</span>
+    <button class="preset" onclick="loadRegPreset('hooke')">Resorte (Hooke)</button>
+    <button class="preset" onclick="loadRegPreset('temp')">Temperatura vs altitud</button>
+    <button class="preset" onclick="loadRegPreset('ohm')">Ley de Ohm</button>
+    <button class="preset" onclick="loadRegPreset('ruido')">Datos con ruido</button>
+  </div>
+
+  <div class="workspace">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Tabla de datos</span>
+        <span class="card-badge" id="reg-count">6 puntos</span>
+      </div>
+
+      <table class="data-table" id="reg-table">
+        <thead>
+          <tr>
+            <th>i</th><th>xᵢ</th><th>yᵢ</th>
+            <th>xᵢyᵢ</th><th>xᵢ²</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="reg-tbody"></tbody>
+        <tfoot id="reg-tfoot">
+          <tr><td>Σ</td><td id="reg-sx">—</td><td id="reg-sy">—</td><td id="reg-sxy">—</td><td id="reg-sxx">—</td><td></td></tr>
+        </tfoot>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="addRegRow()">+ Agregar punto</button>
+        <button class="btn primary" onclick="computeRegression()">Calcular ▸</button>
+      </div>
+
+      <div class="control-group" style="margin-top: 20px;">
+        <label>Predecir y en x =</label>
+        <input type="number" id="reg-predict-x" value="35" step="any">
+        <button class="btn accent" onclick="predictReg()">Estimar</button>
+      </div>
+    </div>
+
+    <div class="card green">
+      <div class="card-header">
+        <span class="card-title">Resultados</span>
+        <span class="card-badge" id="reg-quality">—</span>
+      </div>
+
+      <div class="result-box">
+        <div class="label">Modelo de regresión</div>
+        <div class="value" id="reg-model">y = a₀ + a₁ x</div>
+        <div class="formula" id="reg-r2">Coeficiente r² pendiente de cálculo</div>
+      </div>
+
+      <div class="chart-container" style="margin-top: 16px;">
+        <canvas id="reg-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps" id="reg-steps"></div>
+</section>
+
+<!-- ============== LAGRANGE ============== -->
+<section class="panel" id="panel-lagrange">
+  <div class="section-header">
+    <h2>Interpolación de Lagrange</h2>
+    <p>Para $n+1$ puntos, construye un polinomio de grado $n$ que pasa exactamente por todos. Cada base $L_i(x)$ vale 1 en $x_i$ y 0 en los demás $x_j$.</p>
+  </div>
+
+  <div class="formula-card">
+    <div class="label">Polinomio de Lagrange</div>
+    $$P_n(x) = \sum_{i=0}^{n} y_i \, L_i(x), \qquad L_i(x) = \prod_{\substack{j=0 \\ j \neq i}}^{n} \frac{x - x_j}{x_i - x_j}$$
+    <div style="margin-top:8px; font-size:12px; color:var(--ink-soft);">Verificación: $\sum L_i(x) = 1$ para cualquier $x$.</div>
+  </div>
+
+  <div class="preset-bar">
+    <span class="preset-label">Datasets:</span>
+    <button class="preset" onclick="loadLagPreset('horno')">Horno industrial</button>
+    <button class="preset" onclick="loadLagPreset('densidad')">Densidad del agua</button>
+    <button class="preset" onclick="loadLagPreset('cubica')">Función cúbica</button>
+    <button class="preset" onclick="loadLagPreset('seno')">Aproximación de sin(x)</button>
+  </div>
+
+  <div class="workspace">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Puntos de interpolación</span>
+        <span class="card-badge" id="lag-count">4 puntos</span>
+      </div>
+
+      <table class="data-table" id="lag-table">
+        <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th></th></tr></thead>
+        <tbody id="lag-tbody"></tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="addLagRow()">+ Agregar punto</button>
+      </div>
+
+      <div class="control-group" style="margin-top: 20px;">
+        <label>Evaluar P(x) en x =</label>
+        <input type="number" id="lag-eval-x" value="5" step="any">
+        <button class="btn accent" onclick="computeLagrange()">Calcular ▸</button>
+      </div>
+    </div>
+
+    <div class="card gold">
+      <div class="card-header">
+        <span class="card-title">Resultado</span>
+        <span class="card-badge" id="lag-degree">—</span>
+      </div>
+
+      <div class="result-box">
+        <div class="label">P(x) en el punto solicitado</div>
+        <div class="value" id="lag-result">—</div>
+        <div class="formula" id="lag-verify">Suma de Lᵢ pendiente</div>
+      </div>
+
+      <div class="chart-container" style="margin-top: 16px;">
+        <canvas id="lag-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <span class="card-title">Bases de Lagrange Lᵢ(x) en el punto evaluado</span>
+    </div>
+    <table class="data-table" id="lag-bases">
+      <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th>Lᵢ(x)</th><th>yᵢ · Lᵢ(x)</th></tr></thead>
+      <tbody id="lag-bases-body"></tbody>
+      <tfoot id="lag-bases-foot"></tfoot>
+    </table>
+  </div>
+
+  <div class="steps" id="lag-steps"></div>
+</section>
+
+<!-- ============== DIFERENCIAS FINITAS ============== -->
+<section class="panel" id="panel-finitas">
+  <div class="section-header">
+    <h2>Diferencias finitas · Newton hacia adelante</h2>
+    <p>Cuando los datos están <strong>equiespaciados</strong> (h constante), construir una tabla de diferencias permite armar el polinomio interpolante de forma incremental, mucho más eficiente que Lagrange.</p>
+  </div>
+
+  <div class="formula-card">
+    <div class="label">Newton hacia adelante (con $s = (x - x_0)/h$)</div>
+    $$P_n(x) = y_0 + s\,\Delta y_0 + \frac{s(s-1)}{2!}\Delta^2 y_0 + \frac{s(s-1)(s-2)}{3!}\Delta^3 y_0 + \dots$$
+    $$\Delta^k y_i = \Delta^{k-1} y_{i+1} - \Delta^{k-1} y_i$$
+  </div>
+
+  <div class="preset-bar">
+    <span class="preset-label">Datasets:</span>
+    <button class="preset" onclick="loadFinPreset('caida')">Caída libre</button>
+    <button class="preset" onclick="loadFinPreset('exp')">Crecimiento exponencial</button>
+    <button class="preset" onclick="loadFinPreset('cubico')">Polinomio cúbico</button>
+    <button class="preset" onclick="loadFinPreset('senoidal')">Senoidal</button>
+  </div>
+
+  <div class="workspace">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Datos equiespaciados</span>
+        <span class="card-badge" id="fin-h">h = —</span>
+      </div>
+
+      <table class="data-table" id="fin-table">
+        <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th></th></tr></thead>
+        <tbody id="fin-tbody"></tbody>
+      </table>
+
+      <div class="alert" id="fin-spacing-alert" style="display:none;">
+        <strong>Atención:</strong> los xᵢ no están equiespaciados. Newton-FD requiere h constante.
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="addFinRow()">+ Agregar punto</button>
+      </div>
+
+      <div class="control-group" style="margin-top: 20px;">
+        <label>Evaluar P(x) en x =</label>
+        <input type="number" id="fin-eval-x" value="0.75" step="any">
+        <button class="btn accent" onclick="computeFinitas()">Calcular ▸</button>
+      </div>
+    </div>
+
+    <div class="card blue">
+      <div class="card-header">
+        <span class="card-title">Resultado</span>
+        <span class="card-badge" id="fin-s">s = —</span>
+      </div>
+
+      <div class="result-box">
+        <div class="label">P(x) por Newton hacia adelante</div>
+        <div class="value" id="fin-result">—</div>
+        <div class="formula" id="fin-degree">Polinomio de grado —</div>
+      </div>
+
+      <div class="chart-container" style="margin-top: 16px;">
+        <canvas id="fin-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <span class="card-title">Tabla de diferencias finitas</span>
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="diff-table" id="fin-diff-table">
+        <thead id="fin-diff-head"></thead>
+        <tbody id="fin-diff-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="steps" id="fin-steps"></div>
+</section>
+
+<!-- ============== COMPARATIVA ============== -->
+<section class="panel" id="panel-comparar">
+  <div class="section-header">
+    <h2>Comparativa visual de los tres métodos</h2>
+    <p>Carga un dataset y observa cómo cada método responde. Los puntos azules son los datos. Las curvas muestran el ajuste/interpolación de cada método.</p>
+  </div>
+
+  <div class="preset-bar">
+    <span class="preset-label">Cargar:</span>
+    <button class="preset" onclick="loadCmpPreset('lineal_ruido')">Lineal con ruido</button>
+    <button class="preset" onclick="loadCmpPreset('cuadratico')">Cuadrático limpio</button>
+    <button class="preset" onclick="loadCmpPreset('experimental')">Datos experimentales</button>
+    <button class="preset" onclick="loadCmpPreset('runge')">Función de Runge (¡oscilación!)</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Dataset compartido</span>
+    </div>
+
+    <table class="data-table" id="cmp-table" style="max-width:500px;">
+      <thead><tr><th>i</th><th>xᵢ</th><th>yᵢ</th><th></th></tr></thead>
+      <tbody id="cmp-tbody"></tbody>
+    </table>
+
+    <div class="btn-row">
+      <button class="btn ghost" onclick="addCmpRow()">+ Punto</button>
+      <button class="btn primary" onclick="renderComparison()">Comparar los tres ▸</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <span class="card-title">Visualización superpuesta</span>
+    </div>
+    <div class="chart-container" style="height: 480px;">
+      <canvas id="cmp-chart"></canvas>
+    </div>
+  </div>
+
+  <div id="cmp-summary" style="margin-top: 24px;"></div>
+</section>
+
+</main>
+
+<footer>
+  Simulador educativo · Métodos Numéricos · UVM Mérida ·
+  <span class="accent">Sesión 10</span> ·
+  Construido con HTML + Chart.js + MathJax
+</footer>
+
+<script>
+// ============================================================
+// UTILIDADES GENERALES
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 4) => {
+  if (!isFinite(n)) return '—';
+  if (Math.abs(n) < 1e-10) return '0';
+  return Number(n).toFixed(d).replace(/\.?0+$/, '') || '0';
+};
+const fmtFixed = (n, d = 4) => isFinite(n) ? Number(n).toFixed(d) : '—';
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => goTo(t.dataset.panel));
+});
+
+function goTo(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Re-render charts cuando cambian de tab
+  setTimeout(() => {
+    if (name === 'regresion' && regChart) regChart.resize();
+    if (name === 'lagrange' && lagChart) lagChart.resize();
+    if (name === 'finitas' && finChart) finChart.resize();
+    if (name === 'comparar' && cmpChart) cmpChart.resize();
+  }, 50);
+}
+
+// Charts globales
+let regChart, lagChart, finChart, cmpChart;
+
+const chartBase = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { font: { family: 'JetBrains Mono', size: 11 }, color: '#1a1814' } },
+    tooltip: {
+      backgroundColor: '#1a1814',
+      titleFont: { family: 'JetBrains Mono', size: 11 },
+      bodyFont: { family: 'JetBrains Mono', size: 11 }
+    }
+  },
+  scales: {
+    x: {
+      type: 'linear',
+      grid: { color: 'rgba(168, 160, 142, 0.25)' },
+      ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#4a4540' }
+    },
+    y: {
+      grid: { color: 'rgba(168, 160, 142, 0.25)' },
+      ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#4a4540' }
+    }
+  }
+};
+
+// ============================================================
+// REGRESIÓN LINEAL
+// ============================================================
+const regPresets = {
+  hooke: { name:'Resorte (Hooke)', xLabel:'F (N)', yLabel:'Δx (cm)',
+    points: [[10,1.1],[20,1.9],[30,3.2],[40,4.0],[50,5.3],[60,6.1]] },
+  temp:  { name:'Temperatura vs altitud', xLabel:'h (km)', yLabel:'T (°C)',
+    points: [[0,15],[1,8.5],[2,2.0],[3,-4.5],[4,-11],[5,-17.5]] },
+  ohm:   { name:'Ley de Ohm', xLabel:'V (V)', yLabel:'I (A)',
+    points: [[1,0.21],[2,0.39],[3,0.61],[4,0.78],[5,1.02],[6,1.18]] },
+  ruido: { name:'Datos con ruido', xLabel:'x', yLabel:'y',
+    points: [[1,2.3],[2,3.8],[3,5.1],[4,7.5],[5,8.9],[6,11.2],[7,12.0],[8,14.5]] }
+};
+
+let regData = [...regPresets.hooke.points];
+let regLabels = { x: regPresets.hooke.xLabel, y: regPresets.hooke.yLabel };
+
+function loadRegPreset(key) {
+  const p = regPresets[key];
+  regData = p.points.map(pt => [...pt]);
+  regLabels = { x: p.xLabel, y: p.yLabel };
+  renderRegTable();
+  computeRegression();
+}
+
+function renderRegTable() {
+  const tbody = $('reg-tbody');
+  tbody.innerHTML = '';
+  regData.forEach((pt, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td><input type="number" step="any" value="${pt[0]}" onchange="regData[${i}][0]=parseFloat(this.value)||0; computeRegression()"></td>
+      <td><input type="number" step="any" value="${pt[1]}" onchange="regData[${i}][1]=parseFloat(this.value)||0; computeRegression()"></td>
+      <td class="computed" id="reg-xy-${i}">—</td>
+      <td class="computed" id="reg-x2-${i}">—</td>
+      <td><span class="row-action" onclick="regData.splice(${i},1); renderRegTable(); computeRegression()">×</span></td>`;
+    tbody.appendChild(tr);
+  });
+  $('reg-count').textContent = `${regData.length} puntos`;
+}
+
+function addRegRow() {
+  regData.push([0, 0]);
+  renderRegTable();
+}
+
+function computeRegression() {
+  const n = regData.length;
+  if (n < 2) return;
+
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  regData.forEach((pt, i) => {
+    const [x, y] = pt;
+    const xy = x * y, xx = x * x;
+    sx += x; sy += y; sxy += xy; sxx += xx;
+    const xyEl = $(`reg-xy-${i}`); if (xyEl) xyEl.textContent = fmt(xy);
+    const xxEl = $(`reg-x2-${i}`); if (xxEl) xxEl.textContent = fmt(xx);
+  });
+
+  $('reg-sx').textContent = fmt(sx);
+  $('reg-sy').textContent = fmt(sy);
+  $('reg-sxy').textContent = fmt(sxy);
+  $('reg-sxx').textContent = fmt(sxx);
+
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return;
+
+  const a1 = (n * sxy - sx * sy) / denom;
+  const a0 = (sy - a1 * sx) / n;
+  const xMean = sx / n, yMean = sy / n;
+
+  let St = 0, Sr = 0;
+  regData.forEach(([x, y]) => {
+    St += (y - yMean) ** 2;
+    Sr += (y - (a0 + a1 * x)) ** 2;
+  });
+  const r2 = St > 0 ? (St - Sr) / St : 0;
+
+  // Render modelo
+  const sign = a0 >= 0 ? '+' : '−';
+  $('reg-model').textContent = `y = ${fmt(a1)} x ${sign} ${fmt(Math.abs(a0))}`;
+  $('reg-r2').textContent = `r² = ${fmtFixed(r2, 4)}  ·  Sₜ = ${fmt(St)}  ·  Sᵣ = ${fmt(Sr)}`;
+
+  let quality = 'Pobre';
+  if (r2 > 0.99) quality = 'Excelente';
+  else if (r2 > 0.95) quality = 'Muy bueno';
+  else if (r2 > 0.85) quality = 'Bueno';
+  else if (r2 > 0.7) quality = 'Aceptable';
+  $('reg-quality').textContent = `Ajuste: ${quality}`;
+
+  renderRegSteps({ n, sx, sy, sxy, sxx, a0, a1, xMean, yMean, St, Sr, r2 });
+  renderRegChart(a0, a1);
+}
+
+function renderRegSteps(d) {
+  const html = `
+    <div class="step">
+      <div class="step-num">PASO 1 — Sumatorias</div>
+      <div class="step-title">Calcular Σx, Σy, Σxy, Σx²</div>
+      <div class="step-content">
+        <div class="math-line">n = ${d.n} &nbsp;·&nbsp; Σxᵢ = ${fmt(d.sx)} &nbsp;·&nbsp; Σyᵢ = ${fmt(d.sy)} &nbsp;·&nbsp; Σxᵢyᵢ = ${fmt(d.sxy)} &nbsp;·&nbsp; Σxᵢ² = ${fmt(d.sxx)}</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">PASO 2 — Medias</div>
+      <div class="step-title">Calcular x̄ e ȳ</div>
+      <div class="step-content">
+        <div class="math-line">x̄ = ${fmt(d.sx)}/${d.n} = <strong>${fmt(d.xMean)}</strong> &nbsp;·&nbsp; ȳ = ${fmt(d.sy)}/${d.n} = <strong>${fmt(d.yMean)}</strong></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">PASO 3 — Pendiente a₁</div>
+      <div class="step-title">Aplicar fórmula de mínimos cuadrados</div>
+      <div class="step-content">
+        <div class="math-line">a₁ = [n·Σxy − Σx·Σy] / [n·Σx² − (Σx)²]</div>
+        <div class="math-line">a₁ = [${d.n}·${fmt(d.sxy)} − ${fmt(d.sx)}·${fmt(d.sy)}] / [${d.n}·${fmt(d.sxx)} − ${fmt(d.sx)}²]</div>
+        <div class="math-line">a₁ = [${fmt(d.n * d.sxy)} − ${fmt(d.sx * d.sy)}] / [${fmt(d.n * d.sxx)} − ${fmt(d.sx ** 2)}]</div>
+        <div class="math-line">a₁ = ${fmt(d.n * d.sxy - d.sx * d.sy)} / ${fmt(d.n * d.sxx - d.sx ** 2)} = <strong>${fmt(d.a1)}</strong></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">PASO 4 — Intercepto a₀</div>
+      <div class="step-title">Calcular a₀ con las medias</div>
+      <div class="step-content">
+        <div class="math-line">a₀ = ȳ − a₁·x̄ = ${fmt(d.yMean)} − (${fmt(d.a1)})(${fmt(d.xMean)}) = <strong>${fmt(d.a0)}</strong></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">PASO 5 — Calidad del ajuste</div>
+      <div class="step-title">Coeficiente de determinación r²</div>
+      <div class="step-content">
+        <div class="math-line">Sₜ = Σ(yᵢ − ȳ)² = <strong>${fmt(d.St)}</strong></div>
+        <div class="math-line">Sᵣ = Σ(yᵢ − ŷᵢ)² = <strong>${fmt(d.Sr)}</strong></div>
+        <div class="math-line">r² = (Sₜ − Sᵣ)/Sₜ = <strong>${fmtFixed(d.r2, 4)}</strong> &nbsp;→&nbsp; ${(d.r2 * 100).toFixed(2)}% de la varianza explicada</div>
+      </div>
+    </div>`;
+  $('reg-steps').innerHTML = html;
+}
+
+function predictReg() {
+  const x = parseFloat($('reg-predict-x').value);
+  if (!isFinite(x) || regData.length < 2) return;
+  // Re-extraer a0, a1 del DOM
+  const n = regData.length;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  regData.forEach(([xi, yi]) => { sx += xi; sy += yi; sxy += xi * yi; sxx += xi * xi; });
+  const a1 = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+  const a0 = sy / n - a1 * sx / n;
+  const yPred = a0 + a1 * x;
+
+  const sign = a0 >= 0 ? '+' : '−';
+  alert(`Predicción para x = ${x}:\n\ny = ${fmt(a1)}·(${x}) ${sign} ${fmt(Math.abs(a0))} = ${fmt(yPred)}`);
+}
+
+function renderRegChart(a0, a1) {
+  const ctx = $('reg-chart').getContext('2d');
+  if (regChart) regChart.destroy();
+
+  const xs = regData.map(p => p[0]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const pad = (xMax - xMin) * 0.1;
+  const lineData = [
+    { x: xMin - pad, y: a0 + a1 * (xMin - pad) },
+    { x: xMax + pad, y: a0 + a1 * (xMax + pad) }
+  ];
+
+  regChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Datos observados',
+          data: regData.map(p => ({ x: p[0], y: p[1] })),
+          backgroundColor: '#c1432d',
+          borderColor: '#1a1814',
+          borderWidth: 1.5,
+          pointRadius: 6
+        },
+        {
+          label: 'Recta de regresión',
+          data: lineData,
+          showLine: true,
+          borderColor: '#2d5a4f',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 0
+        }
+      ]
+    },
+    options: { ...chartBase, scales: {
+      ...chartBase.scales,
+      x: { ...chartBase.scales.x, title: { display: true, text: regLabels.x, color: '#4a4540' } },
+      y: { ...chartBase.scales.y, title: { display: true, text: regLabels.y, color: '#4a4540' } }
+    }}
+  });
+}
+
+// ============================================================
+// LAGRANGE
+// ============================================================
+const lagPresets = {
+  horno:    { points: [[1,14],[3,20],[4,28],[6,45]], evalX: 5 },
+  densidad: { points: [[0,999.84],[10,999.70],[20,998.20],[30,995.65],[40,992.22]], evalX: 25 },
+  cubica:   { points: [[-2,-13],[0,1],[1,4],[3,28]], evalX: 2 },
+  seno:     { points: [[0,0],[Math.PI/4, Math.SQRT1_2],[Math.PI/2, 1],[3*Math.PI/4, Math.SQRT1_2],[Math.PI, 0]], evalX: Math.PI/3 }
+};
+
+let lagData = lagPresets.horno.points.map(p => [...p]);
+
+function loadLagPreset(key) {
+  const p = lagPresets[key];
+  lagData = p.points.map(pt => [...pt]);
+  $('lag-eval-x').value = fmt(p.evalX);
+  renderLagTable();
+  computeLagrange();
+}
+
+function renderLagTable() {
+  const tbody = $('lag-tbody');
+  tbody.innerHTML = '';
+  lagData.forEach((pt, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td><input type="number" step="any" value="${pt[0]}" onchange="lagData[${i}][0]=parseFloat(this.value)||0; computeLagrange()"></td>
+      <td><input type="number" step="any" value="${pt[1]}" onchange="lagData[${i}][1]=parseFloat(this.value)||0; computeLagrange()"></td>
+      <td><span class="row-action" onclick="lagData.splice(${i},1); renderLagTable(); computeLagrange()">×</span></td>`;
+    tbody.appendChild(tr);
+  });
+  $('lag-count').textContent = `${lagData.length} puntos`;
+  $('lag-degree').textContent = `Grado ${lagData.length - 1}`;
+}
+
+function addLagRow() {
+  const lastX = lagData.length ? lagData[lagData.length - 1][0] : 0;
+  lagData.push([lastX + 1, 0]);
+  renderLagTable();
+}
+
+function computeLagrange() {
+  const n = lagData.length;
+  if (n < 2) return;
+
+  const xEval = parseFloat($('lag-eval-x').value);
+  if (!isFinite(xEval)) return;
+
+  // Verificar xᵢ duplicados
+  const xs = lagData.map(p => p[0]);
+  if (new Set(xs).size !== xs.length) {
+    $('lag-result').textContent = 'ERROR';
+    $('lag-verify').textContent = 'Hay xᵢ duplicados; cada xᵢ debe ser único.';
+    return;
+  }
+
+  // Calcular cada Lᵢ(xEval)
+  const Ls = lagData.map((_, i) => {
+    let num = 1, den = 1;
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      num *= (xEval - lagData[j][0]);
+      den *= (lagData[i][0] - lagData[j][0]);
+    }
+    return num / den;
+  });
+
+  let result = 0;
+  Ls.forEach((L, i) => result += lagData[i][1] * L);
+
+  const sumL = Ls.reduce((a, b) => a + b, 0);
+
+  $('lag-result').textContent = fmt(result);
+  $('lag-verify').textContent = `Σ Lᵢ(${fmt(xEval)}) = ${fmtFixed(sumL, 6)} ${Math.abs(sumL - 1) < 1e-6 ? '✓' : '⚠'}`;
+
+  // Render bases
+  const bbody = $('lag-bases-body');
+  bbody.innerHTML = '';
+  lagData.forEach((pt, i) => {
+    const term = pt[1] * Ls[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${fmt(pt[0])}</td><td>${fmt(pt[1])}</td><td class="computed">${fmtFixed(Ls[i], 6)}</td><td class="computed">${fmt(term)}</td>`;
+    bbody.appendChild(tr);
+  });
+  $('lag-bases-foot').innerHTML = `<tr><td colspan="3">Σ</td><td>${fmtFixed(sumL, 6)}</td><td><strong>${fmt(result)}</strong></td></tr>`;
+
+  renderLagSteps(xEval, Ls, result);
+  renderLagChart(xEval, result);
+}
+
+function renderLagSteps(xEval, Ls, result) {
+  let html = `<div class="step">
+    <div class="step-num">PASO 1 — Construcción de bases</div>
+    <div class="step-title">Calcular cada Lᵢ(${fmt(xEval)})</div>
+    <div class="step-content">`;
+
+  lagData.forEach((pt, i) => {
+    const numerador = lagData.map((_, j) => i === j ? null : `(${fmt(xEval)} − ${fmt(lagData[j][0])})`).filter(Boolean).join(' · ');
+    const denominador = lagData.map((_, j) => i === j ? null : `(${fmt(pt[0])} − ${fmt(lagData[j][0])})`).filter(Boolean).join(' · ');
+    let numV = 1, denV = 1;
+    for (let j = 0; j < lagData.length; j++) {
+      if (i === j) continue;
+      numV *= (xEval - lagData[j][0]);
+      denV *= (pt[0] - lagData[j][0]);
+    }
+    html += `<div class="math-line">L${i}(${fmt(xEval)}) = ${numerador} / ${denominador} = ${fmt(numV)} / ${fmt(denV)} = <strong>${fmtFixed(Ls[i], 6)}</strong></div>`;
+  });
+
+  html += `</div></div>
+    <div class="step">
+      <div class="step-num">PASO 2 — Verificación</div>
+      <div class="step-title">La suma de las bases debe ser 1</div>
+      <div class="step-content">
+        <div class="math-line">Σ Lᵢ = ${Ls.map(L => fmtFixed(L, 4)).join(' + ').replace(/\+ -/g, '− ')} = <strong>${fmtFixed(Ls.reduce((a,b)=>a+b,0), 6)}</strong></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">PASO 3 — Combinación lineal</div>
+      <div class="step-title">P(${fmt(xEval)}) = Σ yᵢ · Lᵢ(${fmt(xEval)})</div>
+      <div class="step-content">
+        <div class="math-line">P = ${lagData.map((p, i) => `(${fmt(p[1])})(${fmtFixed(Ls[i], 4)})`).join(' + ')}</div>
+        <div class="math-line">P = ${lagData.map((p, i) => fmt(p[1] * Ls[i])).join(' + ').replace(/\+ -/g, '− ')} = <strong>${fmt(result)}</strong></div>
+      </div>
+    </div>`;
+  $('lag-steps').innerHTML = html;
+}
+
+function evalLagrange(x, points) {
+  const n = points.length;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    let L = 1;
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      L *= (x - points[j][0]) / (points[i][0] - points[j][0]);
+    }
+    sum += points[i][1] * L;
+  }
+  return sum;
+}
+
+function renderLagChart(xEval, yEval) {
+  const ctx = $('lag-chart').getContext('2d');
+  if (lagChart) lagChart.destroy();
+
+  const xs = lagData.map(p => p[0]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const pad = (xMax - xMin) * 0.1;
+  const curve = [];
+  const steps = 200;
+  for (let k = 0; k <= steps; k++) {
+    const x = xMin - pad + (xMax - xMin + 2 * pad) * k / steps;
+    curve.push({ x, y: evalLagrange(x, lagData) });
+  }
+
+  lagChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Polinomio P(x)', data: curve, showLine: true, borderColor: '#d4881a', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0 },
+        { label: 'Puntos dato', data: lagData.map(p => ({x:p[0], y:p[1]})), backgroundColor: '#1a1814', borderColor: '#fdfaf2', borderWidth: 2, pointRadius: 7 },
+        { label: `P(${fmt(xEval)})`, data: [{x: xEval, y: yEval}], backgroundColor: '#c1432d', borderColor: '#fdfaf2', borderWidth: 2, pointRadius: 8, pointStyle: 'rectRot' }
+      ]
+    },
+    options: chartBase
+  });
+}
+
+// ============================================================
+// DIFERENCIAS FINITAS
+// ============================================================
+const finPresets = {
+  caida:    { points: [[0,0],[0.5,1.25],[1.0,5.0],[1.5,11.25],[2.0,20.0]], evalX: 0.75 },
+  exp:      { points: [[0,1],[1,2.718],[2,7.389],[3,20.086],[4,54.598]], evalX: 1.5 },
+  cubico:   { points: [[0,1],[1,2],[2,11],[3,34],[4,77]], evalX: 1.5 },
+  senoidal: { points: [[0,0],[0.5,0.479],[1.0,0.841],[1.5,0.997],[2.0,0.909]], evalX: 1.25 }
+};
+
+let finData = finPresets.caida.points.map(p => [...p]);
+
+function loadFinPreset(key) {
+  const p = finPresets[key];
+  finData = p.points.map(pt => [...pt]);
+  $('fin-eval-x').value = fmt(p.evalX);
+  renderFinTable();
+  computeFinitas();
+}
+
+function renderFinTable() {
+  const tbody = $('fin-tbody');
+  tbody.innerHTML = '';
+  finData.forEach((pt, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td><input type="number" step="any" value="${pt[0]}" onchange="finData[${i}][0]=parseFloat(this.value)||0; computeFinitas()"></td>
+      <td><input type="number" step="any" value="${pt[1]}" onchange="finData[${i}][1]=parseFloat(this.value)||0; computeFinitas()"></td>
+      <td><span class="row-action" onclick="finData.splice(${i},1); renderFinTable(); computeFinitas()">×</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addFinRow() {
+  if (finData.length >= 2) {
+    const h = finData[1][0] - finData[0][0];
+    const last = finData[finData.length - 1][0];
+    finData.push([last + h, 0]);
+  } else {
+    finData.push([0, 0]);
+  }
+  renderFinTable();
+}
+
+function buildDiffTable(data) {
+  const n = data.length;
+  const ys = data.map(p => p[1]);
+  const diffs = [ys];
+  for (let k = 1; k < n; k++) {
+    const prev = diffs[k - 1];
+    const next = [];
+    for (let i = 0; i < prev.length - 1; i++) {
+      next.push(prev[i + 1] - prev[i]);
+    }
+    diffs.push(next);
+  }
+  return diffs;
+}
+
+function computeFinitas() {
+  const n = finData.length;
+  if (n < 2) return;
+
+  // Verificar espaciado
+  const h = finData[1][0] - finData[0][0];
+  let isUniform = true;
+  for (let i = 1; i < n - 1; i++) {
+    if (Math.abs((finData[i + 1][0] - finData[i][0]) - h) > 1e-9) {
+      isUniform = false;
+      break;
+    }
+  }
+  $('fin-spacing-alert').style.display = isUniform ? 'none' : 'block';
+  $('fin-h').textContent = isUniform ? `h = ${fmt(h)}` : 'h ≠ constante';
+
+  if (!isUniform) return;
+
+  const xEval = parseFloat($('fin-eval-x').value);
+  const x0 = finData[0][0];
+  const s = (xEval - x0) / h;
+  $('fin-s').textContent = `s = ${fmt(s)}`;
+
+  // Construir tabla de diferencias
+  const diffs = buildDiffTable(finData);
+  renderDiffTable(diffs);
+
+  // Calcular polinomio
+  let P = diffs[0][0]; // y0
+  let coef = 1;
+  let factK = 1;
+  const terms = [{ k: 0, value: diffs[0][0], coefStr: 'y₀', deltaStr: '', total: diffs[0][0] }];
+
+  for (let k = 1; k < diffs.length; k++) {
+    coef *= (s - (k - 1));
+    factK *= k;
+    const sCoef = coef / factK;
+    const delta0 = diffs[k][0];
+    const term = sCoef * delta0;
+    P += term;
+    terms.push({ k, value: term, sCoef, delta: delta0 });
+  }
+
+  $('fin-result').textContent = fmt(P);
+  $('fin-degree').textContent = `Polinomio de grado ${n - 1} · h = ${fmt(h)}`;
+
+  renderFinSteps(s, h, x0, xEval, diffs, terms, P);
+  renderFinChart(xEval, P, diffs, h, x0);
+}
+
+function renderDiffTable(diffs) {
+  const head = $('fin-diff-head');
+  const body = $('fin-diff-body');
+  const cols = diffs.length;
+
+  let headHtml = '<tr><th>i</th><th>xᵢ</th><th>yᵢ</th>';
+  for (let k = 1; k < cols; k++) headHtml += `<th>Δ${k > 1 ? '<sup>'+k+'</sup>' : ''}y</th>`;
+  headHtml += '</tr>';
+  head.innerHTML = headHtml;
+
+  body.innerHTML = '';
+  for (let i = 0; i < finData.length; i++) {
+    let row = `<tr><td>${i}</td><td>${fmt(finData[i][0])}</td><td>${fmt(finData[i][1])}</td>`;
+    for (let k = 1; k < cols; k++) {
+      if (i < diffs[k].length) {
+        row += `<td class="delta-${Math.min(k,4)}">${fmt(diffs[k][i])}</td>`;
+      } else {
+        row += '<td></td>';
+      }
+    }
+    row += '</tr>';
+    body.innerHTML += row;
+  }
+}
+
+function renderFinSteps(s, h, x0, xEval, diffs, terms, P) {
+  let html = `<div class="step">
+    <div class="step-num">PASO 1 — Espaciado y parámetro s</div>
+    <div class="step-title">Verificar h constante y calcular s</div>
+    <div class="step-content">
+      <div class="math-line">h = x₁ − x₀ = ${fmt(h)} (constante ✓)</div>
+      <div class="math-line">s = (x − x₀) / h = (${fmt(xEval)} − ${fmt(x0)}) / ${fmt(h)} = <strong>${fmt(s)}</strong></div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">PASO 2 — Tabla de diferencias finitas</div>
+    <div class="step-title">Δᵏy₀ para cada orden</div>
+    <div class="step-content">
+      <div class="math-line">Δy₀ = ${diffs[1] ? fmt(diffs[1][0]) : '—'} ${diffs[2] ? `· Δ²y₀ = ${fmt(diffs[2][0])}` : ''} ${diffs[3] ? `· Δ³y₀ = ${fmt(diffs[3][0])}` : ''} ${diffs[4] ? `· Δ⁴y₀ = ${fmt(diffs[4][0])}` : ''}</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">PASO 3 — Construir polinomio término a término</div>
+    <div class="step-title">P(x) = y₀ + s·Δy₀ + s(s−1)/2!·Δ²y₀ + …</div>
+    <div class="step-content">`;
+
+  terms.forEach((t, k) => {
+    if (k === 0) {
+      html += `<div class="math-line">T₀ = y₀ = <strong>${fmt(t.total)}</strong></div>`;
+    } else {
+      const sCoef = t.sCoef;
+      const fact = factorial(k);
+      const sExpr = Array.from({length:k}, (_, j) => `(s−${j})`).join('·').replace('(s−0)', 's');
+      html += `<div class="math-line">T${toSub(k)} = [${sExpr} / ${k}!] · Δ${k>1?'<sup>'+k+'</sup>':''}y₀ = [${fmt(sCoef * fact)}/${fact}] · ${fmt(t.delta)} = ${fmt(sCoef)} · ${fmt(t.delta)} = <strong>${fmt(t.value)}</strong></div>`;
+    }
+  });
+
+  html += `</div></div>
+  <div class="step">
+    <div class="step-num">PASO 4 — Suma final</div>
+    <div class="step-title">Acumular todos los términos</div>
+    <div class="step-content">
+      <div class="math-line">P(${fmt(xEval)}) = ${terms.map(t => fmt(t.value !== undefined ? t.value : t.total)).join(' + ').replace(/\+ -/g, '− ')} = <strong>${fmt(P)}</strong></div>
+    </div>
+  </div>`;
+  $('fin-steps').innerHTML = html;
+}
+
+function factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+function toSub(n) {
+  const subs = '₀₁₂₃₄₅₆₇₈₉';
+  return String(n).split('').map(d => subs[+d]).join('');
+}
+
+function evalNewtonFwd(x, data, diffs, h) {
+  const x0 = data[0][0];
+  const s = (x - x0) / h;
+  let P = diffs[0][0];
+  let coef = 1, fact = 1;
+  for (let k = 1; k < diffs.length; k++) {
+    coef *= (s - (k - 1));
+    fact *= k;
+    P += (coef / fact) * diffs[k][0];
+  }
+  return P;
+}
+
+function renderFinChart(xEval, yEval, diffs, h, x0) {
+  const ctx = $('fin-chart').getContext('2d');
+  if (finChart) finChart.destroy();
+
+  const xs = finData.map(p => p[0]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const pad = (xMax - xMin) * 0.1;
+  const curve = [];
+  for (let k = 0; k <= 200; k++) {
+    const x = xMin - pad + (xMax - xMin + 2 * pad) * k / 200;
+    curve.push({ x, y: evalNewtonFwd(x, finData, diffs, h) });
+  }
+
+  finChart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Newton hacia adelante', data: curve, showLine: true, borderColor: '#3a4a8c', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0 },
+        { label: 'Puntos dato', data: finData.map(p => ({x:p[0], y:p[1]})), backgroundColor: '#1a1814', borderColor: '#fdfaf2', borderWidth: 2, pointRadius: 7 },
+        { label: `P(${fmt(xEval)})`, data: [{x: xEval, y: yEval}], backgroundColor: '#c1432d', borderColor: '#fdfaf2', borderWidth: 2, pointRadius: 8, pointStyle: 'rectRot' }
+      ]
+    },
+    options: chartBase
+  });
+}
+
+// ============================================================
+// COMPARATIVA
+// ============================================================
+const cmpPresets = {
+  lineal_ruido: [[1,2.1],[2,3.9],[3,6.2],[4,7.8],[5,10.1],[6,12.0],[7,14.2]],
+  cuadratico:   [[0,0],[1,1],[2,4],[3,9],[4,16],[5,25]],
+  experimental: [[0,1.0],[1,2.3],[2,3.1],[3,2.8],[4,2.0],[5,1.2]],
+  runge:        [[-1,0.5],[-0.5,0.8],[0,1.0],[0.5,0.8],[1,0.5]]
+};
+
+let cmpData = [...cmpPresets.cuadratico].map(p => [...p]);
+
+function loadCmpPreset(key) {
+  cmpData = cmpPresets[key].map(p => [...p]);
+  renderCmpTable();
+  renderComparison();
+}
+
+function renderCmpTable() {
+  const tbody = $('cmp-tbody');
+  tbody.innerHTML = '';
+  cmpData.forEach((pt, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td><input type="number" step="any" value="${pt[0]}" onchange="cmpData[${i}][0]=parseFloat(this.value)||0"></td>
+      <td><input type="number" step="any" value="${pt[1]}" onchange="cmpData[${i}][1]=parseFloat(this.value)||0"></td>
+      <td><span class="row-action" onclick="cmpData.splice(${i},1); renderCmpTable()">×</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addCmpRow() {
+  cmpData.push([cmpData.length, 0]);
+  renderCmpTable();
+}
+
+function renderComparison() {
+  const n = cmpData.length;
+  if (n < 2) return;
+
+  // Ordenar
+  cmpData.sort((a, b) => a[0] - b[0]);
+
+  // Regresión
+  let sx=0,sy=0,sxy=0,sxx=0;
+  cmpData.forEach(([x,y]) => { sx+=x; sy+=y; sxy+=x*y; sxx+=x*x; });
+  const a1 = (n*sxy - sx*sy) / (n*sxx - sx*sx);
+  const a0 = sy/n - a1*sx/n;
+
+  // Verificar si es equiespaciado para FD
+  const h = cmpData[1][0] - cmpData[0][0];
+  let isUniform = true;
+  for (let i = 1; i < n - 1; i++) {
+    if (Math.abs((cmpData[i+1][0] - cmpData[i][0]) - h) > 1e-6) { isUniform = false; break; }
+  }
+  const diffs = isUniform ? buildDiffTable(cmpData) : null;
+
+  // Construir curvas
+  const xs = cmpData.map(p => p[0]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const pad = (xMax - xMin) * 0.05;
+  const xStart = xMin - pad, xEnd = xMax + pad;
+
+  const regCurve = [{x: xStart, y: a0+a1*xStart}, {x: xEnd, y: a0+a1*xEnd}];
+  const lagCurve = [], finCurve = [];
+  for (let k = 0; k <= 300; k++) {
+    const x = xStart + (xEnd - xStart) * k/300;
+    lagCurve.push({x, y: evalLagrange(x, cmpData)});
+    if (isUniform) finCurve.push({x, y: evalNewtonFwd(x, cmpData, diffs, h)});
+  }
+
+  // Render chart
+  const ctx = $('cmp-chart').getContext('2d');
+  if (cmpChart) cmpChart.destroy();
+
+  const datasets = [
+    { label: 'Datos', data: cmpData.map(p=>({x:p[0],y:p[1]})), backgroundColor: '#1a1814', borderColor: '#fdfaf2', borderWidth: 2, pointRadius: 8, order: 0 },
+    { label: `Regresión: y = ${fmt(a1)}x ${a0>=0?'+':'−'} ${fmt(Math.abs(a0))}`, data: regCurve, showLine: true, borderColor: '#c1432d', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0, order: 3 },
+    { label: `Lagrange (grado ${n-1})`, data: lagCurve, showLine: true, borderColor: '#2d5a4f', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0, borderDash: [], order: 2 }
+  ];
+  if (isUniform) {
+    datasets.push({ label: `Diferencias finitas (h=${fmt(h)})`, data: finCurve, showLine: true, borderColor: '#d4881a', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, borderDash: [6,4], order: 1 });
+  }
+
+  cmpChart = new Chart(ctx, { type: 'scatter', data: { datasets }, options: chartBase });
+
+  // Resumen
+  let St=0, Sr=0;
+  const yMean = sy/n;
+  cmpData.forEach(([x,y]) => { St += (y-yMean)**2; Sr += (y-(a0+a1*x))**2; });
+  const r2 = St > 0 ? (St-Sr)/St : 0;
+
+  $('cmp-summary').innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="card-title">Análisis comparativo</span></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; font-size:14px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:#c1432d; margin-bottom:6px;">Regresión</div>
+          <div>y = ${fmt(a1)}x ${a0>=0?'+':'−'} ${fmt(Math.abs(a0))}</div>
+          <div style="color:var(--ink-soft); margin-top:4px;">r² = ${fmtFixed(r2,4)}</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:#2d5a4f; margin-bottom:6px;">Lagrange</div>
+          <div>Polinomio grado ${n-1}</div>
+          <div style="color:var(--ink-soft); margin-top:4px;">Pasa por todos los puntos</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:#d4881a; margin-bottom:6px;">Newton-FD</div>
+          <div>${isUniform ? `h = ${fmt(h)} ✓` : 'No aplica (h ≠ const)'}</div>
+          <div style="color:var(--ink-soft); margin-top:4px;">${isUniform ? 'Equivalente a Lagrange' : 'Datos no equiespaciados'}</div>
+        </div>
+      </div>
+      ${!isUniform ? `<div class="alert" style="margin-top:16px;"><strong>Nota:</strong> los xᵢ no están equiespaciados, así que Newton-FD no se aplica. Se muestran sólo Regresión y Lagrange.</div>` : ''}
+      ${n > 8 ? `<div class="alert" style="margin-top:8px;"><strong>Cuidado:</strong> con muchos puntos, el polinomio interpolante puede oscilar fuertemente entre los nodos (fenómeno de Runge). Carga el preset "Función de Runge" para verlo.</div>` : ''}
+    </div>
+  `;
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+renderRegTable();
+computeRegression();
+renderLagTable();
+computeLagrange();
+renderFinTable();
+computeFinitas();
+renderCmpTable();
+renderComparison();
+</script>
+
+</body>
+</html>
